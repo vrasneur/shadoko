@@ -1,0 +1,258 @@
+Shadoko : le premier langage de programmation Shadok-complete, fait en Haskell[1] avec des poubelles et une fermeture éclair.
+
+Qu'est-ce que le Shadoko ?
+--------------------------
+
+Le Shadoko est un langage de programmation ressemblant au langage Brainfuck[2], mais avec des trucs en plus et des idées venant de l'informatique Shadok.
+
+Voici un exemple de programme en Shadoko :
+ZO GA MEU GA BU MEU MEU GA MEU ZO GA MEU GA BU MEU MEU BU MEU
+Pour savoir ce qu'il fait, regardez le premier programme d'exemple.
+
+Vous aurez besoin du compilateur Haskell GHC[3] pour compiler l'interpréteur.
+
+Pourquoi le Shadoko ?
+---------------------
+
+Il existe actuellement plusieurs milliers de langages informatiques. Cependant aucun n'a été prévu pour être utilisé par un Shadok.
+
+Le Shadoko remédie à ce problème : les programmes écrits en Shadoko ne sont composés que des mots GA, BU, ZO et MEU. Le Shadoko fait aussi appel aux notions de comptage par poubelles et de pompe, ce qui le rend particulièrement facile à assimiler pour un Shadok lambda.
+
+Pourquoi avoir choisi ce nom ?
+------------------------------
+
+Le nom Shadoko est un hommage au Professeur Shadoko, grand savant Shadok et inventeur de l'ouvre-boîte en conserve, du comptage par poubelles et de la passoire à dépasser.
+
+Nommer un langage informatique en fonction d'un scientifique est une pratique relativement courante : Pascal pour Blaise Pascal, Haskell pour Haskell Curry, Erlang pour Agner Erlang, Python pour Monty Python (nan, je déconne).
+
+Pourquoi avec des poubelles ?
+-----------------------------
+
+Parce que c'est ainsi que le Professeur Shadoko compte. Pour vous le prouver, voici un extrait d'un cours de calcul Shadok :
+
+"""
+Le calcul a toujours donné beaucoup de fil à retordre aux Shadoks...
+En effet n'ayant que quatres cases il ne pouvait pas compter plus que quatre... 1, 2, 3, 4...
+Mais le professeur Shadoko avait réformé tout ca...
+
+Quand il n'y a pas de Shadoks, on dit GA.
+Quand il y a un shadok de plus, on dit BU.
+Quand il y a encore un shadok de plus, on dit ZO.
+Et quand il y a encore un autre, on dit MEU.
+
+Si je mets un shadok en plus, évidement, je n'ai plus assez de mots pour les compter...
+
+Alors c'est très simple: on les jette dans une poubelle, et je dis que j'ai BU poubelle.
+Et pour ne pas confondre avec le BU du début, je dis qu'il n'y a pas de Shadok à coté de la poubelle et j'écris BU GA.
+"""
+
+(et le reste sur [4])
+
+En Shadoko, un nombre dans ce format est affiché avec les poubelles explicites.
+On affichera donc BU poubelle GA pour BU GA, ou ZO grande poubelle MEU poubelle GA pour ZO MEU GA.
+
+Pourquoi avec une fermeture éclair ?
+------------------------------------
+
+Une fermeture éclair (ou "Zipper" en anglais) est une structure de données purement fonctionnelle. L'interpréteur utilise cette structure pour gérer la liste infinie de pompes (voir plus bas pour une explication concernant cette liste). Pour plus de renseignements sur les fermetures éclair en Haskell, voir [5] par exemple, ou bien dans le code source de l'interpréteur.
+
+Bien entendu, l'interpréteur Shadoko utilise aussi les autres trucs en Haskell disposant de noms à coucher dehors : monades, transformateurs de monades, types de données algébriques, etc.
+
+Comment fonctionne un programme ?
+---------------------------------
+
+* le modèle d'exécution :
+
+Le modèle d'exécution ressemble fortement à une machine de Turing, mais avec des pompes et un Shadok.
+
+La liste de pompes est (théoriquement) infinie. Chaque pompe contient un réservoir. Ce réservoir stocke un nombre représenté de la manière Shadok, c'est-à-dire avec des poubelles. Il peut avoir un contenu allant de "" à "" (soit de -2147483648 à 2147483647). Si l'on ajoute BU (c'est-à-dire 1) au contenu maximal d'un réservoir, on obtient le contenu minimal. Si l'on soustrait BU au contenu minimal, on obtient le contenu maximal.
+
+Au début, le réservoir d'une pompe est vide (et contient donc GA).
+
+Il y a aussi un Shadok. Celui-ci va faire des trucs plus ou moins intéressants (pomper, dépomper, aller à la pompe de gauche, inverser le sens d'exécution, ...) selon ce que lui dit le programme.
+
+* les différents modes :
+
+Le Brainfuck est trop compliqué pour un Shadok : il contient 8 instructions et un cerveau Shadok ne contient que 4 cases. De plus, un Shadok ne peut comprendre que les mots GA, BU, ZO et MEU.
+
+Pour n'avoir à manipuler que des GA, des BU, des ZO et des MEU, Shadoko reprend le principe des modes que l'on trouve dans l'éditeur vi[6].
+
+Il existe 4 modes possibles pour un programme en Shadoko :
+* le mode GA (ou mode pompage)
+* le mode BU (ou mode choisissage)
+* le mode ZO (ou mode interactionnage)
+* le mode MEU (ou mode bouclage)
+
+Un programme Shadoko n'a pas de mode au début de son exécution. Le premier mot du programme permet donc d'en choisir un.
+
+Une fois le choix du mode effectué, le programme peut exécuter les mots GA, BU et ZO qui ont une signification différente selon le mode dans lequel on est. Le mot MEU a un sens commun pour tous les modes : il met fin au mode courant. Le prochain mot du programme permettra de choisir de nouveau un mode (comme au début du programme).
+
+* les différents mots dans les différents modes :
+
+en mode GA (ou mode pompage) :
+* GA : le Shadok dépompe, il soustrait ainsi BU (ou 1) au réservoir de la pompe courante.
+* BU : le Shadok pompe, il ajoute ainsi BU (ou 1) au réservoir de la pompe courante.
+* ZO : le Shadok se repose, il ne fait ainsi strictement rien.
+* MEU : le Shadok sort du mode GA.
+
+en mode BU (ou mode choisissage) :
+* GA : le Shadok choisit la pompe de gauche comme pompe courante.
+* BU : le Shadok choisit la pompe de droite comme pompe courante.
+* ZO : le Shadok se retourne. Les pompes de gauche deviennent celles de droite et réciproquement.
+* MEU : le Shadok sort du mode BU.
+
+en mode ZO (ou mode interactionnage) :
+* GA : le Shadok regarde le contenu du réservoir de la pompe courante et l'affiche sur la sortie standard au format comptage par poubelles.
+* BU : le Shadok regarde le contenu du réservoir de la pompe courante et l'affiche sur la sortie standard au format ASCII. Le contenu est converti en entier humain, subit un modulo 256 et pour finir est transformé en caractère ASCII.
+* ZO : le Shadok remplace le contenu du réservoir de la pompe courante avec la valeur entrée par l'utilisateur. Cette valeur est un caractère au format ASCII. Pour rentrer dans le réservoir, elle est convertie en nombre Shadok au format comptage par poubelles.
+* MEU : le Shadok sort du mode ZO.
+
+en mode MEU (ou mode bouclage) :
+* GA : le Shadok regarde le réservoir de la pompe courante. Si celui-ci contient GA, il va au mot se trouvant après le prochain mot BU en mode MEU ; sinon, il avance dans la boucle qui vient de se créer (simple, non ?).
+* BU : le Shadok va à la première position contenant un mot GA en mode MEU qui n'a pas de mot BU en mode MEU correspondant.
+* ZO : le Shadok inverse le sens d'exécution du programme. Le programme va donc fonctionner à l'envers. Les pompes sont préservées durant le changement de sens, mais les boucles sont recalculées en partant de l'ancienne fin (et donc du nouveau début) du programme.
+* MEU : le Shadok sort du mode MEU.
+
+Autres précisions utiles :
+--------------------------
+
+Il n'y a pas d'extension standard pour les noms des programmes en Shadoko. Cependant, pour éviter de sombrer dans le nommage anarchique, il est recommandé d'utiliser .ga, .bu, .zo ou .meu comme extension.
+
+Le contenu utile d'un programme en Shadoko est composé des mots GA, BU, ZO et MEU. Ces mots peuvent être en minuscule, majuscule ou les deux en même temps. Ils peuvent être collés les uns aux autres ou séparés (ou les deux en même temps). Tout ce qui n'est pas un mot Shadok est considéré comme un commentaire.
+
+Quelles différences avec le Brainfuck ?
+---------------------------------------
+
+Outre les pompes, le Shadok, les GA, LES BU, les ZO et les MEU, il y a d'autres différences qu'il faut signaler :
+* le modèle d'exécution du Brainfuck consiste en un tableau fini de cellules initialisées à zéro, celui de Shadok en une liste infinie de pompes.
+* Le Brainfuck compte avec des nombres normaux, Shadoko emploie la méthode du comptage par poubelles du professeur Shadoko.
+* Le réservoir d'une pompe en Shadoko peut avoir un contenu beaucoup plus grand que celui d'une cellule en Brainfuck.
+* L'emploi des modes en Shadoko permet d'avoir plus d'instructions qu'en Brainfuck.
+* Le Brainfuck ne permet pas d'inverser le flux d'exécution d'un programme. Shadoko, si. De plus, l'ajout des modes permet d'avoir un programme faisant des choses complètement différentes dans les deux sens (et non l'inverse de l'autre sens. Voir le 2ème programme d'exemple pour un exemple concret.)
+* Un Shadok ne peut pas utiliser Brainfuck, mais il peut utiliser Shadoko.
+
+Malgré ces subtiles variations, il serait assez facile de faire un compilateur de Brainfuck vers Shadoko. Cela permettrait d'utiliser l'abondante logithèque Brainfuck directement en Shadoko. (Mais j'ai la flemme pour le moment.)
+
+Quelques exemples :
+-------------------
+
+- Premier programme :
+
+ZO GA MEU
+GA BU MEU
+MEU GA MEU
+ZO GA MEU
+GA BU MEU
+MEU BU MEU
+
+Démonstration du comptage par poubelles.
+Ce programme :
+* affiche le contenu de la pompe courante en mode comptage par poubelles, soit BU (ZO GA MEU)
+* ajoute BU au réservoir de la pompe courante (GA BU MEU)
+* commence une boucle et rentre dedans car le réservoir contient BU. (MEU GA MEU)
+* affiche le contenu de la pompe courante en mode comptage par poubelles (ZO GA MEU)
+* ajoute BU au réservoir de la pompe courante (GA BU MEU)
+* va en début de boucle (MEU BU MEU)
+
+Il affiche ceci sur la sortie standard :
+GA
+BU
+ZO
+MEU
+BU poubelle GA
+BU poubelle BU
+BU poubelle ZO
+BU poubelle MEU
+ZO poubelles GA
+ZO poubelles BU
+ZO poubelles ZO
+ZO poubelles MEU
+MEU poubelles GA
+MEU poubelles BU
+MEU poubelles ZO
+MEU poubelles MEU
+BU grande poubelle GA
+BU grande poubelle BU
+BU grande poubelle ZO
+BU grande poubelle MEU
+etc
+
+- Deuxième programme :
+
+GA ZO MEU
+BU BU BU GA MEU
+BU GA MEU
+MEU ZO
+
+Démonstration de l'inversion du flux d'exécution.
+Ce programme :
+* ne fait rien (GA ZO MEU)
+* va à la pompe de droite (BU BU BU GA MEU)
+* va à la pompe de gauche (BU GA MEU) (donc revient à la pompe courante d'avant)
+* inverse le sens d'exécution (MEU ZO, puis de nouveau MEU mais en flux inversé)
+* regarde pour créer une boucle. La pompe courante étant à zéro, cela ne fait rien. (MEU GA BU MEU)
+* ajoute MEU au réservoir de la pompe courante (GA BU BU BU MEU)
+* affiche le contenu du réservoir en format comptage par poubelles, soit MEU (ZO GA)
+
+ZO MEU MEU ZO
+
+Ce palindrome en Shadoko est en fait une boucle infinie.
+Ce programme :
+* passe en mode ZO et en sort (ZO MEU)
+* inverse le flux d'exécution (MEU ZO, puis de nouveau MEU mais en flux inversé)
+* inverse le flux d'exécution (MEU ZO, puis de nouveau MEU mais en flux inversé)
+* inverse le flux d'exécution (MEU ZO, puis de nouveau MEU mais en flux inversé)
+* inverse le flux d'exécution (MEU ZO, puis de nouveau MEU mais en flux inversé)
+* etc
+
+Et l'exemple canonique pour terminer :
+
+BU GA GA GA GA MEU
+GA GA MEU
+MEU BU MEU
+BU BU MEU
+GA BU BU MEU
+ZO BU MEU
+BU BU MEU
+GA BU MEU
+ZO BU MEU
+GA BU BU BU BU BU BU BU MEU
+ZO BU BU MEU
+GA BU BU BU MEU
+ZO BU MEU
+BU BU MEU
+GA BU BU MEU
+ZO BU MEU
+BU GA GA MEU
+GA BU BU BU BU BU BU BU BU BU BU BU BU BU BU BU MEU
+ZO BU MEU
+BU BU MEU
+ZO BU MEU
+GA BU BU BU MEU
+ZO BU MEU
+GA GA GA GA GA GA GA MEU
+ZO BU MEU
+GA GA GA GA GA GA GA GA GA MEU
+ZO BU MEU
+BU BU MEU
+GA BU MEU
+ZO BU MEU
+BU BU MEU
+ZO BU MEU
+
+Ce programme affiche "Hello World!\n" sur la sortie standard.
+
+Liens
+-----
+
+[1] http://www.haskell.org/
+
+[2] http://esolangs.org/wiki/Brainfuck
+
+[3] http://www.haskell.org/ghc/
+
+[4] http://www.lesshadoks.com/index2.php?page=14
+
+[5] http://cgi.cse.unsw.edu.au/~dons/blog/2007/05/17
+
+[6] http://en.wikipedia.org/wiki/Vi
